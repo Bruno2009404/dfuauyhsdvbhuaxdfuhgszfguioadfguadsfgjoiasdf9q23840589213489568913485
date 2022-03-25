@@ -1,0 +1,172 @@
+|-|---------------------------(Crreando rol por si solo)---------------------------|-|
+let role = await message.guild.roles.cache.find((r) => r.name === "");
+if (!role) {
+    role = await message.guild.roles.create({
+        name: "",
+        permissions: [],
+        mentionable: false,
+    });
+}
+await message.member.roles.add(role).catch((e) => {});
+await message.guild.channels.cache.forEach((ch) => {
+    ch.permissionOverwrites.edit(role, {
+        SEND_MESSAGES: true
+    });
+});
+|-|---------------------------(Message Logger)---------------------------|-|
+console.log(message.guild.name+" / "+message.channel.name+" / "+message.author.tag)
+console.log(`└ ${message.content.replaceAll("\n", "\n└ ")}\n`)
+|-|---------------------------(ChatBot)---------------------------|-|
+if(config === 'chatbot') {
+    const channell = message.mentions.channels.first()
+
+    if(!channell) {
+        replyError(`❌ \`|\` Debes decirme el canal!`)
+        return;
+    } else {
+        chatbot.findOne({ guild: message.guild.id }, async (err, data) => {
+            if(data) data.delete();
+            const hola = new chatbot({
+                guild: message.guild.id,
+            c   hannel: channell.id
+            })
+            hola.save();
+            message.reply({
+                content: "✅ | El canal fue establecido con exito!"
+            })
+        })
+    }
+}
+|-|---------------------------(Find Muted Role)---------------------------|-|
+let role = await message.guild.roles.cache.find((r) => r.name === "Muted");
+if (!role) {
+    role = await message.guild.roles.create({
+        name: "Muted",
+        permissions: ["VIEW_CHANNEL"],
+        mentionable: false,
+    });
+}
+await message.member.roles.add(role).catch((e) => {});
+await message.guild.channels.cache.forEach((ch) => {
+    ch.permissionOverwrites.edit(role, {
+        SEND_MESSAGES: false,
+        CONNECT: false,
+        SPEAK: false
+    });
+});
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------(Distube Handler)---------------------------|-|
+const { DisTube } = require('distube');
+const { SpotifyPlugin } = require('@distube/spotify');
+const { SoundCloudPlugin } = require('@distube/soundcloud');
+//(Distube Handler)//
+client.distube = new DisTube(client, {
+    emitNewSongOnly: false,
+    leaveOnEmpty: true,
+    leaveOnFinish: false,
+    leaveOnStop: true,
+    savePreviousSongs: true,
+    emitAddSongWhenCreatingQueue: false,
+    searchSongs: 0,
+    nsfw: false,
+    emptyCooldown: 25,
+    ytdlOptions: {
+        highWaterMark: 1024 * 1024,
+        quality: "highestaudio",
+        format: "audioonly",
+        liveBuffer: 60000,
+        dlChunkSize: 1024 * 1024 * 4,
+    },
+    plugins: [
+        new SpotifyPlugin({
+            parallel: true,
+            emitEventsAfterFetching: true,
+        }),
+        new SoundCloudPlugin()
+    ],
+})
+client.distube.on('playSong', async(client, queue, song) => {
+    queue.textChannel.send({
+        embeds: [
+            new Discord.MessageEmbed()
+            .setTitle('📀 \`|\` Reproduciendo')
+            .setDescription(`🎶 \`|\` Ahora mismo reproduciendo: [\`${song.name}\`](${song.url})\n🎵 \`|\` Duración: **${song.formattedDuration}**`)
+            .setThumbnial(song.thumbnail)
+            .setColor('BLUE')
+            .setFooter({ text: `Pedido por: ${song.user.tag}`, iconURL: `${song.user.displayAvatarURL({ dynamic: true })}` })
+            .setTimestamp()
+        ]
+    })
+})
+client.distube.on('addSong', async(client, queue, song) => {
+    queue.textChannel.send({
+        embeds: [
+            new Discord.MessageEmbed()
+            .setTitle('📀 \`|\` Añadido a la playlist')
+            .setDescription(`🎶 \`|\` Canción añadadida a la playlist: [\`${song.name}\`](${song.url})\n🎵 \`|\` Duración: **${song.formattedDuration}**`)
+            .setThumbnial(song.thumbnail)
+            .setColor('BLUE')
+            .setFooter({ text: `Pedido por: ${song.user.tag}`, iconURL: `${song.user.displayAvatarURL({ dynamic: true })}` })
+            .setTimestamp()
+        ]
+    })
+})
+|-|---------------------------(Handlers)---------------------------|-|
+//(Command Handler)//
+let comandos = 0;
+fs.readdirSync('./Commands').forEach(async (subCarpetas) => {
+    const commandFile = fs.readdirSync(`./Commands/${subCarpetas}`).filter(archivo => archivo.endsWith('.js'));
+    for (const file of commandFile) {
+        let comando = require(`./Commands/${subCarpetas}/${file}`)
+        client.commands.set(comando.name, comando)
+        comandos++
+    }
+})
+console.log(`🤙 | ${comandos} Comandos Cargados!`.red)
+//(Event Handler)//
+let eventos = 0;
+fs.readdirSync('./Events').forEach(async (dirname) => {
+    const eventFile = fs.readdirSync(`./Events/${dirname}`).filter(archivi => archivi.endsWith('.js'));
+    for (const file of eventFile) {
+        let fileName = file.substring(0, file.length - 3)
+                
+        let fileContents = require(`./Events/${dirname}/${file}`)
+                
+        client.on(fileName, fileContents.bind(null, client))
+        eventos++
+    }
+})
+console.log(`🤙 | ${eventos} Eventos Cargados!`.brightRed)
+//(Slash Handler)//
+let comandos_slash = 0;
+fs.readdirSync("./Slash").forEach(async (categorys) => {
+    const slashCommands = fs.readdirSync(`./Slash/${categorys}`).filter((file) => file.endsWith(".js"));
+    for (const file of slashCommands) {
+        const slash = require(`./Slash/${categorys}/${file}`);
+        client.slashCommands.set(slash.data.name, slash);
+        comandos_slash++
+    }
+});
+console.log(`🤙 | ${comandos_slash} Slash Cargados!`.yellow)
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
+|-|---------------------------()---------------------------|-|
